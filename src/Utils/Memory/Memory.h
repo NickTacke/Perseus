@@ -26,7 +26,7 @@ namespace Memory {
     }
     template <typename T>
     bool ReadArray(unsigned long address, T* array, size_t size) {
-        return ReadRaw(address, array, sizeof(T) * len);
+        return ReadRaw(address, array, sizeof(T) * size);
     }
 
     // Write functions
@@ -38,9 +38,9 @@ namespace Memory {
         return WriteRaw(address, (void*)&value, sizeof(T));
     }
     template <typename T>
-    bool WriteArray(unsigned long address, T* array, size_t len) {
+    bool WriteArray(unsigned long address, T* array, size_t size) {
         return WriteRaw(address, array, sizeof(T) * size);
     }
 }
 
-#endif
+#endif // MEMORY_H
