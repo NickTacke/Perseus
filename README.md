@@ -2,6 +2,8 @@
 
 The most stable and safety focussed Apex Legends cheat out there.
 
+![3](https://github.com/NickTacke/Perseus/assets/44647382/a662f622-9737-4c7f-b1e9-50b771340865)
+
 ## Features
 
 - **Web-Based UI**: Easy to navigate and user-friendly interface accessible via a web browser.
