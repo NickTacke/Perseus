@@ -164,7 +164,7 @@ std::string Memory::ReadString(unsigned long address) {
     return std::string(buffer);
 }
 
-bool Memory::ReadRaw(unsigned long address, void* buffer, size_t size) {
+bool Memory::WriteRaw(unsigned long address, void* buffer, size_t size) {
     // Check for invalid size
     if(size <= 0)
         return false;
