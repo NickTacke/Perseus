@@ -13,6 +13,9 @@ namespace Memory {
     unsigned long GetModuleBase(pid_t processId, const char* moduleName);
     unsigned long GetLastModuleBase();
 
+    int OpenCharDriver();
+    int CloseCharDriver();
+
     // Read functions
     bool ReadRaw(unsigned long address, void* buffer, size_t size);
     std::string ReadString(unsigned long address);

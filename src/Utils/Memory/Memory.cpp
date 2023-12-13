@@ -1,12 +1,26 @@
 #include "Memory.h"
 
 #include <iostream>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <cstring>
+#include <thread>
+#include <chrono>
 #include <fstream>
 #include <sstream>
 #include <sys/uio.h>
 
 pid_t _processId;
 unsigned long _moduleBase;
+
+struct memory_transfer_info {
+    pid_t procid;          // Process ID
+    void *from_buffer;     // Pointer to the source buffer
+    void *to_buffer;       // Pointer to the destination buffer
+    size_t buffer_size;    // Size of the buffers
+};
 
 pid_t Memory::GetProcessId(const char* processName) {
     // Char buffer for command result
@@ -101,7 +115,23 @@ unsigned long Memory::GetLastModuleBase() {
     return _moduleBase;
 }
 
-// TODO: Add kernel module implementation
+const char* devicePath = "/dev/Perseus";
+int device;
+
+int Memory::OpenCharDriver() {
+    // Open the device
+    device = open(devicePath, O_RDWR);
+    if (device < 0) {
+        std::cerr << "Could not open device " << devicePath << std::endl;
+        return 1;
+    }
+}
+
+int Memory::CloseCharDriver() {
+    close(device);
+    return 0;
+}
+
 bool Memory::ReadRaw(unsigned long address, void* buffer, size_t size) {
     // Check for invalid size
     if(size <= 0)
@@ -111,21 +141,16 @@ bool Memory::ReadRaw(unsigned long address, void* buffer, size_t size) {
     void* addressPtr = (void*)address;
     pid_t processId = GetLastProcessId();
 
-    // Local address space
-    struct iovec localAddressSpace[1]{0};
-    localAddressSpace->iov_base = buffer;
-    localAddressSpace->iov_len = size;
-
-    // Remote address space
-    struct iovec remoteAddressSpace[1]{0};
-    remoteAddressSpace->iov_base = addressPtr;
-    remoteAddressSpace->iov_len = size;
-
-    // Read from the given address
-    ssize_t returnSize = process_vm_readv(processId, localAddressSpace, 1, remoteAddressSpace, 1, NULL);
+    memory_transfer_info transferInfo = {};
+    transferInfo.procid = processId;
+    transferInfo.from_buffer = addressPtr;
+    transferInfo.to_buffer = buffer;
+    transferInfo.buffer_size = size;
     
+    ssize_t bytesRead = read(device, (void*)&transferInfo, sizeof(memory_transfer_info));
+
     // Check if nothing went wrong
-    return returnSize == (ssize_t)size;
+    return bytesRead == (ssize_t)size;
 }
 
 std::string Memory::ReadString(unsigned long address) {
@@ -139,29 +164,23 @@ std::string Memory::ReadString(unsigned long address) {
     return std::string(buffer);
 }
 
-// Add kernel module implementation
-bool Memory::WriteRaw(unsigned long address, void* buffer, size_t size) {
+bool Memory::ReadRaw(unsigned long address, void* buffer, size_t size) {
     // Check for invalid size
     if(size <= 0)
-        return NULL;
+        return false;
 
-    // Required data for writing
+    // Required data for reading
     void* addressPtr = (void*)address;
     pid_t processId = GetLastProcessId();
 
-    // Set the values for the local address space
-    struct iovec localAddressSpace[1]{0};
-    localAddressSpace->iov_base = buffer;
-    localAddressSpace->iov_len = size;
+    memory_transfer_info transferInfo = {};
+    transferInfo.procid = processId;
+    transferInfo.from_buffer = buffer;
+    transferInfo.to_buffer = addressPtr;
+    transferInfo.buffer_size = size;
+    
+    ssize_t bytesWritten = write(device, &transferInfo, sizeof(memory_transfer_info));
 
-    // Set the values for the remote address space
-    struct iovec remoteAddressSpace[1]{0};
-    remoteAddressSpace->iov_base = addressPtr;
-    remoteAddressSpace->iov_len = size;
-
-    // Write the value from the buffer to the given address
-    ssize_t returnSize = process_vm_writev(processId, localAddressSpace, 1, remoteAddressSpace, 1, NULL);
-
-    // Check if data was written successfuly
-    return returnSize == (ssize_t)size;
+    // Check if nothing went wrong
+    return bytesWritten == (ssize_t)size;
 }
